@@ -196,22 +196,26 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		if err != nil {
 			return nil, err
 		}
+
+		// copy the marked After values so we can use these in marshalSensitiveValues
+		markedAfter := changeV.After
+
 		// The values may be marked, but we must rely on the Sensitive flag
 		// as the decoded value is only an intermediate step in transcoding
 		// this to a json format.
 		changeV.Before, _ = changeV.Before.UnmarkDeep()
-		after, _ := changeV.After.UnmarkDeep()
+		changeV.After, _ = changeV.After.UnmarkDeep()
 
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
-				resource.AttributeValues = marshalAttributeValues(after, schema)
+				resource.AttributeValues = marshalAttributeValues(changeV.After, schema)
 			} else {
-				knowns := omitUnknowns(after)
+				knowns := omitUnknowns(changeV.After)
 				resource.AttributeValues = marshalAttributeValues(knowns, schema)
 			}
 		}
 
-		resource.SensitiveValues = marshalSensitiveValues(changeV.After)
+		resource.SensitiveValues = marshalSensitiveValues(markedAfter)
 
 		ret = append(ret, resource)
 	}
